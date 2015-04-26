@@ -17,7 +17,7 @@ window.EB.onload = !->
     .style \border-radius \30px
 
   game.append \object
-    .attr \data 'res/table.svg'
+    .attr \data '/res/table.svg'
 
   balls = for n til 16 then id: n, cx: n * 25 + 100, cy: 100
 
