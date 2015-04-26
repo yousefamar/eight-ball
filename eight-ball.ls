@@ -4,8 +4,8 @@ window.EB = {}
 
 window.EB.onload = !->
 
-  width  = 800
-  height = 450
+  width  = 600
+  height = 350
 
   body = d3.select \body
 
@@ -17,6 +17,8 @@ window.EB.onload = !->
     .style \border-radius \30px
 
   game.append \img
+    .attr \width  "#{width}px"
+    .attr \height "#{height - 50}px"
     .attr \src 'res/table.svg'
 
   balls = for n til 16 then id: n, cx: n * 25 + 100, cy: 100
@@ -35,7 +37,7 @@ window.EB.onload = !->
       .style \fill \#DDDDDD
 
   game.append \div
-    .style \top \400px
+    .style \top "#{height - 50}px"
     .style \width  \100%
     .style \height \50px
     .style \text-align \center
@@ -61,10 +63,10 @@ init-physics = !->
     ..world.gravity.y = 0
 
   walls = []
-    ..push Bodies.rectangle 400, 15,  800, 30,  { +is-static, restitution: 1 }
-    ..push Bodies.rectangle 400, 385, 800, 30,  { +is-static, restitution: 1 }
-    ..push Bodies.rectangle 15,  200, 30,  320, { +is-static, restitution: 1 }
-    ..push Bodies.rectangle 785, 200, 30,  320, { +is-static, restitution: 1 }
+    ..push Bodies.rectangle 300,   12.5,  600, 25,  { +is-static, restitution: 1 }
+    ..push Bodies.rectangle 300,   287.5, 600, 25,  { +is-static, restitution: 1 }
+    ..push Bodies.rectangle 12.5,  150,   25,  250, { +is-static, restitution: 1 }
+    ..push Bodies.rectangle 587.5, 150,   25,  250, { +is-static, restitution: 1 }
 
   balls = for n til 16 then Bodies.circle n * 25 + 100, 100, 10, restitution: 1
 
