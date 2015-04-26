@@ -45,21 +45,50 @@ window.EB.onload = !->
     .text 'Under Construction...'
 
   init-physics!
+  init-controls!
+
+engine = null
+is-mouse-down = false
+last-mouse-x = 0
+last-mouse-y = 0
 
 init-physics = !->
   circles = d3.select-all \circle
+
+  line = d3.select \#game
+    .append \svg
+    .attr  \width  \100%
+    .attr  \height \100%
+    .style \left \0
+    .append \line
+      .attr \x1 \0
+      .attr \y1 \0
+      .attr \x2 \0
+      .attr \y2 \0
+      .style \stroke \#771F1F
+      .style \stroke-width \2
 
   renderer =
     create: -> controller: renderer
     clear: ->
     world: (engine) !->
       balls = Composite.all-bodies engine.world .slice 4
+      if is-mouse-down
+        white-ball = balls[0]
+        line
+          .attr \x1 white-ball.position.x
+          .attr \y1 white-ball.position.y
+          .attr \x2 last-mouse-x
+          .attr \y2 last-mouse-y
+          .attr \visibility \visible
+      else
+        line.attr \visibility \hidden
       circles
         .data (for ball in balls then cx: ball.position.x, cy: ball.position.y)
         .attr \cx -> it.cx
         .attr \cy -> it.cy
 
-  engine = Engine.create { render: controller: renderer }, position-iterations: 1, velocity-iterations: 1
+  engine := Engine.create { render: controller: renderer }, position-iterations: 1, velocity-iterations: 1
     ..world.gravity.y = 0
 
   walls = []
@@ -77,3 +106,21 @@ init-physics = !->
   World.add engine.world, balls
 
   Engine.run engine
+
+init-controls = !->
+  document.body.add-event-listener \mousedown !-> is-mouse-down := true
+
+  document.body.add-event-listener \mouseup   !->
+    is-mouse-down := false
+    white-ball = Composite.all-bodies engine.world .[4]
+    force =
+      x: (last-mouse-x - white-ball.position.x)
+      y: (last-mouse-y - white-ball.position.y)
+    mag = 100 * Math.sqrt (force.x * force.x + force.y * force.y)
+    force.x /= mag
+    force.y /= mag
+    Body.apply-force white-ball, white-ball.position, force
+
+  document.body.add-event-listener \mousemove !->
+    last-mouse-x := it.client-x
+    last-mouse-y := it.client-y
