@@ -1,0 +1,31 @@
+{
+  "name": "eight-ball",
+  "version": "1.0.0",
+  "description": "An eight-ball game embedded in Manyland",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Paraknight/eight-ball.git"
+  },
+  "keywords": [
+    "eight",
+    "ball",
+    "manyland",
+    "game",
+    "multiplayer",
+    "multi",
+    "player",
+    "two"
+  ],
+  "author": "Yousef Amar <yousef@amar.io> (http://yousefamar.com/)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Paraknight/eight-ball/issues"
+  },
+  "homepage": "https://github.com/Paraknight/eight-ball",
+  "dependencies": {
+    "matter-js": "^0.8.0"
+  }
+}
