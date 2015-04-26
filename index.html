@@ -6,6 +6,7 @@
 
 		<style>
 			* {
+				position: absolute;
 				margin: 0;
 				padding: 0;
 				-moz-box-sizing: border-box;
@@ -13,20 +14,15 @@
 				box-sizing: border-box;
 			}
 			body {
+				color: #EEEEEE;
 				font-family: 'Press Start 2P', sans-serif;
 				font-size: 80%;
 				text-transform: uppercase;
-			}
-			#game {
-				width: 800px;
-				height: 450px;
-				background-color: black;
+				border-radius: 30px;
 			}
 		</style>
 
 		<script src="eight-ball.min.js"></script>
 	</head>
-	<body>
-		<div id="game"></div>
-	</body>
+	<body onload="window.EB.onload();"></body>
 </html>
