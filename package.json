@@ -26,7 +26,6 @@
   },
   "homepage": "https://github.com/Paraknight/eight-ball",
   "dependencies": {
-    "d3": "^3.5.5",
-    "matter-js": "^0.8.0"
+    "d3": "^3.5.5"
   }
 }

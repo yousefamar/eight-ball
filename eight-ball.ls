@@ -1,4 +1,4 @@
-require! { d3, \matter-js : { Engine, World, Bodies, Composite, Body }:matter }
+require! { d3, './lib/physicsjs-full.min.js': physics }
 
 window.EB = {}
 
@@ -22,7 +22,6 @@ window.EB.onload = !->
     .attr \src 'res/table.svg'
 
   balls = for n til 16 then id: n, x: n * 25 + 100, y: 100
-  console.log balls
 
   game.select-all \.ball
     .data balls
@@ -46,13 +45,27 @@ window.EB.onload = !->
   init-physics!
   init-controls!
 
-engine = null
+cue-ball = null
 is-mouse-down = false
 last-mouse-x = 0
 last-mouse-y = 0
 
 init-physics = !->
   ball-imgs = d3.select-all \.ball
+
+  world <-! physics {
+    timestep: 6
+    maxIPF:   4
+  }
+
+  physics.renderer \custom, ->
+    render: (bodies) !->
+      ball-imgs
+        .data (for body in bodies then x: body.state.pos.get(0), y: body.state.pos.get(1))
+        .style \top  -> it.y - 10 + \px
+        .style \left -> it.x - 10 + \px
+
+  world.add physics.renderer \custom
 
   line = d3.select \#game
     .append \svg
@@ -67,58 +80,57 @@ init-physics = !->
       .style \stroke \#771F1F
       .style \stroke-width \2
 
-  renderer =
-    create: -> controller: renderer
-    clear: ->
-    world: (engine) !->
-      balls = Composite.all-bodies engine.world .slice 4
-      if is-mouse-down
-        white-ball = balls[0]
-        line
-          .attr \x1 white-ball.position.x
-          .attr \y1 white-ball.position.y
-          .attr \x2 last-mouse-x
-          .attr \y2 last-mouse-y
-          .attr \visibility \visible
-      else
-        line.attr \visibility \hidden
-      ball-imgs
-        .data (for ball in balls then x: ball.position.x, y: ball.position.y)
-        .style \top  -> it.y - 10 + \px
-        .style \left -> it.x - 10 + \px
+  physics.util.ticker.on (time) !->
+    world.step time
+    world.render!
+    if is-mouse-down
+      line
+        .attr \x1 cue-ball.state.pos.get 0
+        .attr \y1 cue-ball.state.pos.get 1
+        .attr \x2 last-mouse-x
+        .attr \y2 last-mouse-y
+        .attr \visibility \visible
+    else
+      line.attr \visibility \hidden
 
-  engine := Engine.create { render: controller: renderer }, position-iterations: 1, velocity-iterations: 1
-    ..world.gravity.y = 0
+  world.add physics.behavior \edge-collision-detection,
+      aabb: physics.aabb 25 25 575 275
+      restitution: 0.8
 
-  walls = []
-    ..push Bodies.rectangle 300,   12.5,  600, 25,  { +is-static, restitution: 1 }
-    ..push Bodies.rectangle 300,   287.5, 600, 25,  { +is-static, restitution: 1 }
-    ..push Bodies.rectangle 12.5,  150,   25,  250, { +is-static, restitution: 1 }
-    ..push Bodies.rectangle 587.5, 150,   25,  250, { +is-static, restitution: 1 }
+  world.add balls = for n til 16
+    physics.body \circle,
+      x: n * 25 + 100
+      y: 100
+      vx: (Math.random! - 0.5)
+      vy: (Math.random! - 0.5)
+      radius: 10
+      restitution: 0.8
 
-  balls = for n til 16 then Bodies.circle n * 25 + 100, 100, 10, restitution: 1
+  cue-ball := balls[0]
 
-  for ball in balls then Body.apply-force ball, ball.position, { x: (Math.random! - 0.5) / 50, y: (Math.random! - 0.5) / 50 }
+  world.add balls
 
-  World.add engine.world, walls
+  world.add [
+    physics.behavior \body-impulse-response
+    physics.behavior \body-collision-detection
+    physics.behavior \sweep-prune
+  ]
 
-  World.add engine.world, balls
+  physics.util.ticker.start!
 
-  Engine.run engine
 
 init-controls = !->
   document.body.add-event-listener \mousedown !-> is-mouse-down := true
 
   document.body.add-event-listener \mouseup   !->
     is-mouse-down := false
-    white-ball = Composite.all-bodies engine.world .[4]
     force =
-      x: (last-mouse-x - white-ball.position.x)
-      y: (last-mouse-y - white-ball.position.y)
-    mag = 100 * Math.sqrt (force.x * force.x + force.y * force.y)
+      x: (last-mouse-x - cue-ball.state.pos.get 0)
+      y: (last-mouse-y - cue-ball.state.pos.get 1)
+    mag = 10 * Math.sqrt (force.x * force.x + force.y * force.y)
     force.x /= mag
     force.y /= mag
-    Body.apply-force white-ball, white-ball.position, force
+    cue-ball.apply-force force
 
   document.body.add-event-listener \mousemove !->
     last-mouse-x := it.client-x
