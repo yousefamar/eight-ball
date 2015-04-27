@@ -120,9 +120,8 @@ init-physics = !->
 
 
 init-controls = !->
-  document.body.add-event-listener \mousedown !-> is-mouse-down := true
-
-  document.body.add-event-listener \mouseup   !->
+  on-down = !-> is-mouse-down := true
+  on-up   = !->
     is-mouse-down := false
     force =
       x: (last-mouse-x - cue-ball.state.pos.get 0)
@@ -131,7 +130,14 @@ init-controls = !->
     force.x /= mag
     force.y /= mag
     cue-ball.apply-force force
-
-  document.body.add-event-listener \mousemove !->
+  on-move = !->
     last-mouse-x := it.client-x
     last-mouse-y := it.client-y
+
+  document.body.add-event-listener
+    .. \mousedown  on-down
+    .. \touchstart on-down
+    .. \mouseup    on-up
+    .. \touchend   on-up
+    .. \mousemove  on-move
+    .. \touchmove  on-move
