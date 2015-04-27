@@ -21,20 +21,19 @@ window.EB.onload = !->
     .attr \height "#{height - 50}px"
     .attr \src 'res/table.svg'
 
-  balls = for n til 16 then id: n, cx: n * 25 + 100, cy: 100
+  balls = for n til 16 then id: n, x: n * 25 + 100, y: 100
+  console.log balls
 
-  game.append \svg
-    .attr  \width  \100%
-    .attr  \height \100%
-    .style \left \0
-    .select-all \circle
+  game.select-all \.ball
     .data balls
     .enter!
-    .append \circle
-      .attr \cx -> it.cx
-      .attr \cy -> it.cy
-      .attr \r  \10
-      .style \fill \#DDDDDD
+    .append \img
+    .attr  \class  \ball
+    .attr  \width  \20px
+    .attr  \height \20px
+    .attr  \src  -> "res/ball-#{it.id}.svg"
+    .style \top  -> it.y - 10 + \px
+    .style \left -> it.x - 10 + \px
 
   game.append \div
     .style \top "#{height - 50}px"
@@ -53,7 +52,7 @@ last-mouse-x = 0
 last-mouse-y = 0
 
 init-physics = !->
-  circles = d3.select-all \circle
+  ball-imgs = d3.select-all \.ball
 
   line = d3.select \#game
     .append \svg
@@ -83,10 +82,10 @@ init-physics = !->
           .attr \visibility \visible
       else
         line.attr \visibility \hidden
-      circles
-        .data (for ball in balls then cx: ball.position.x, cy: ball.position.y)
-        .attr \cx -> it.cx
-        .attr \cy -> it.cy
+      ball-imgs
+        .data (for ball in balls then x: ball.position.x, y: ball.position.y)
+        .style \top  -> it.y - 10 + \px
+        .style \left -> it.x - 10 + \px
 
   engine := Engine.create { render: controller: renderer }, position-iterations: 1, velocity-iterations: 1
     ..world.gravity.y = 0
