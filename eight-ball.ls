@@ -55,7 +55,7 @@ init-physics = !->
 
   world <-! physics {
     timestep: 6
-    maxIPF:   4
+    max-IPF:  4
   }
 
   physics.renderer \custom, ->
@@ -96,6 +96,7 @@ init-physics = !->
   world.add physics.behavior \edge-collision-detection,
       aabb: physics.aabb 25 25 575 275
       restitution: 0.8
+      cof: 0
 
   world.add balls = for n til 16
     physics.body \circle,
@@ -104,7 +105,8 @@ init-physics = !->
       vx: (Math.random! - 0.5)
       vy: (Math.random! - 0.5)
       radius: 10
-      restitution: 0.8
+      restitution: 1
+      cof: 0
 
   cue-ball := balls[0]
 
@@ -114,6 +116,7 @@ init-physics = !->
     physics.behavior \body-impulse-response
     physics.behavior \body-collision-detection
     physics.behavior \sweep-prune
+    physics.integrator \velocity-verlet drag: 0.004
   ]
 
   physics.util.ticker.start!
@@ -129,6 +132,7 @@ init-controls = !->
     mag = 10 * Math.sqrt (force.x * force.x + force.y * force.y)
     force.x /= mag
     force.y /= mag
+    cue-ball.sleep false
     cue-ball.apply-force force
   on-move = !->
     last-mouse-x := it.client-x
