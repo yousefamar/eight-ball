@@ -2,6 +2,18 @@ require! { d3, './lib/physicsjs-full.min.js': physics }
 
 window.EB = {}
 
+sounds =
+  ball-collision:
+    play: do ->
+      audio = new Audio 'res/ball-collision.ogg'
+      clones = for til 10 then audio.clone-node!
+      id = 0
+      (volume) !->
+        clones[id]
+          ..volume = volume
+          ..play!
+        id := (id + 1) % 10
+
 window.EB.onload = !->
 
   width  = 600
@@ -100,6 +112,7 @@ init-physics = !->
 
   world.add balls = for n til 16
     physics.body \circle,
+      class: \ball
       x: n * 25 + 100
       y: 100
       vx: (Math.random! - 0.5)
@@ -118,6 +131,12 @@ init-physics = !->
     physics.behavior \sweep-prune
     physics.integrator \velocity-verlet drag: 0.004
   ]
+
+  world.on \collisions:detected (data) !-> for c in data.collisions then world.emit \collision-pair { c.body-a, c.body-b, c.overlap }
+
+  world.on \collision-pair !->
+    it.overlap = Math.max 0 Math.min 1 it.overlap
+    if it.body-a.class is \ball and it.body-b.class is \ball then sounds.ball-collision.play it.overlap
 
   physics.util.ticker.start!
 
