@@ -40,6 +40,7 @@ window.EB.onload = !->
     .data balls
     .enter!
     .append \img
+    .attr  \id -> "ball-#{it.id}"
     .attr  \class  \ball
     .attr  \width  \20px
     .attr  \height \20px
@@ -75,7 +76,7 @@ init-physics = !->
   physics.renderer \custom, ->
     render: (bodies) !->
       ball-imgs
-        .data (for body in bodies then x: body.state.pos.get(0), y: body.state.pos.get(1))
+        .data (for ball in balls then x: ball.state.pos.x, y: ball.state.pos.y)
         .style \top  -> it.y - 10 + \px
         .style \left -> it.x - 10 + \px
 
@@ -107,8 +108,8 @@ init-physics = !->
     world.step time
     world.render!
     if is-mouse-down
-      cue-x = cue-ball.state.pos.get 0
-      cue-y = cue-ball.state.pos.get 1
+      cue-x = cue-ball.state.pos.x
+      cue-y = cue-ball.state.pos.y
       stick
         .style \top  cue-y + \px
         .style \left cue-x - 10 + \px
@@ -131,6 +132,7 @@ init-physics = !->
 
   world.add balls = for n til 16
     physics.body \circle,
+      id: "ball-#n"
       class: \ball
       x: n * 25 + 100
       y: 100
@@ -142,7 +144,25 @@ init-physics = !->
 
   cue-ball := balls[0]
 
-  world.add balls
+  world.add holes = for n til 6
+    physics.body \circle,
+      class: \hole
+      treatment: \static
+      x: 30 + (n % 3) * 270
+      y: 30 + (Math.floor(n / 3)) * 240
+      radius: 8
+
+  holes[1].state.pos.y -= 8
+  holes[4].state.pos.y += 8
+
+  #for hole in holes
+  #  game.append \div
+  #    .style \top  "#{hole.state.pos.y - 8}px"
+  #    .style \left "#{hole.state.pos.x - 8}px"
+  #    .style \width  "16px"
+  #    .style \height "16px"
+  #    .style \background-color \red
+  #    .style \border-radius \8px
 
   world.add [
     physics.behavior \body-impulse-response
@@ -156,14 +176,20 @@ init-physics = !->
   world.on \collision-pair !->
     it.overlap = Math.max 0 Math.min 1 it.overlap
     if it.body-a.class is \ball and it.body-b.class is \ball then sounds.ball-collision.play it.overlap
+    sinkee = null
+    if      it.body-a.class is \ball and it.body-b.class is \hole then sinkee = it.body-a
+    else if it.body-b.class is \ball and it.body-a.class is \hole then sinkee = it.body-b
+    if sinkee?
+      d3.select \# + sinkee.id .remove!
+      world.remove-body sinkee
 
   physics.util.ticker.start!
 
 
 init-controls = !->
   update-aim-angle = !->
-    x = (last-mouse-x - cue-ball.state.pos.get 0)
-    y = (last-mouse-y - cue-ball.state.pos.get 1)
+    x = last-mouse-x - cue-ball.state.pos.x
+    y = last-mouse-y - cue-ball.state.pos.y
     last-aim-angle := 1.57079632679 + Math.atan2 y, x
 
   on-down = !->
@@ -172,8 +198,8 @@ init-controls = !->
   on-up   = !->
     is-mouse-down := false
     force =
-      x: (last-mouse-x - cue-ball.state.pos.get 0)
-      y: (last-mouse-y - cue-ball.state.pos.get 1)
+      x: last-mouse-x - cue-ball.state.pos.x
+      y: last-mouse-y - cue-ball.state.pos.y
     mag = 10 * Math.sqrt (force.x * force.x + force.y * force.y)
     force.x /= mag
     force.y /= mag
