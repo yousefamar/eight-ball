@@ -2,17 +2,23 @@ require! { d3, './lib/physicsjs-full.min.js': physics }
 
 window.EB = {}
 
+build-audio-player = (url, clone-count) ->
+  audio = new Audio url
+  clones = for til clone-count then audio.clone-node!
+  id = 0
+  (volume) !->
+    clones[id]
+      ..volume = volume
+      ..play!
+    id := (id + 1) % clone-count
+
 sounds =
   ball-collision:
-    play: do ->
-      audio = new Audio 'res/ball-collision.ogg'
-      clones = for til 10 then audio.clone-node!
-      id = 0
-      (volume) !->
-        clones[id]
-          ..volume = volume
-          ..play!
-        id := (id + 1) % 10
+    play: build-audio-player 'res/ball-collision.ogg' 10
+  pocket:
+    play: build-audio-player 'res/pocket.ogg' 6
+  cue-shot:
+    play: build-audio-player 'res/cue-shot.ogg' 1
 
 window.EB.onload = !->
 
@@ -182,6 +188,7 @@ init-physics = !->
     if sinkee?
       d3.select \# + sinkee.id .remove!
       world.remove-body sinkee
+      sounds.pocket.play 1
 
   physics.util.ticker.start!
 
@@ -205,6 +212,7 @@ init-controls = !->
     force.y /= mag
     cue-ball.sleep false
     cue-ball.apply-force force
+    sounds.cue-shot.play 1
   on-move = !->
     last-mouse-x := it.client-x
     last-mouse-y := it.client-y
