@@ -61,6 +61,7 @@ cue-ball = null
 is-mouse-down = false
 last-mouse-x = 0
 last-mouse-y = 0
+last-aim-angle = 0
 
 init-physics = !->
   ball-imgs = d3.select-all \.ball
@@ -79,7 +80,16 @@ init-physics = !->
 
   world.add physics.renderer \custom
 
-  line = d3.select \#game
+  game = d3.select \#game
+
+  stick = game.append \img
+    .attr \width  "20px"
+    .attr \height "500px"
+    .attr \src 'res/stick.svg'
+    .style \transform-origin 'center top'
+    .style \visibility \hidden
+
+  line = game
     .append \svg
     .attr  \width  \100%
     .attr  \height \100%
@@ -96,14 +106,22 @@ init-physics = !->
     world.step time
     world.render!
     if is-mouse-down
+      cue-x = cue-ball.state.pos.get 0
+      cue-y = cue-ball.state.pos.get 1
+      stick
+        .style \top  cue-y + \px
+        .style \left cue-x - 10 + \px
+        .style \transform "rotate(#{last-aim-angle}rad) translate(0px, 20px)"
+        .style \visibility \visible
       line
-        .attr \x1 cue-ball.state.pos.get 0
-        .attr \y1 cue-ball.state.pos.get 1
+        .attr \x1 cue-x
+        .attr \y1 cue-y
         .attr \x2 last-mouse-x
         .attr \y2 last-mouse-y
         .attr \visibility \visible
     else
-      line.attr \visibility \hidden
+      line.attr   \visibility \hidden
+      stick.style \visibility \hidden
 
   world.add physics.behavior \edge-collision-detection,
       aabb: physics.aabb 25 25 575 275
@@ -142,7 +160,14 @@ init-physics = !->
 
 
 init-controls = !->
-  on-down = !-> is-mouse-down := true
+  update-aim-angle = !->
+    x = (last-mouse-x - cue-ball.state.pos.get 0)
+    y = (last-mouse-y - cue-ball.state.pos.get 1)
+    last-aim-angle := 1.57079632679 + Math.atan2 y, x
+
+  on-down = !->
+    is-mouse-down := true
+    update-aim-angle!
   on-up   = !->
     is-mouse-down := false
     force =
@@ -156,6 +181,7 @@ init-controls = !->
   on-move = !->
     last-mouse-x := it.client-x
     last-mouse-y := it.client-y
+    if is-mouse-down then update-aim-angle!
 
   document.body.add-event-listener
     .. \mousedown  on-down
