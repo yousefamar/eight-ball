@@ -27,6 +27,7 @@ window.EB.onload = !->
     .style \height "#{height}px"
     .style \background-color \black
     .style \border-radius \30px
+    .style \overflow \hidden
 
   game.append \img
     .attr \width  "#{width}px"
