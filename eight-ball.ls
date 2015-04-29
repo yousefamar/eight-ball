@@ -23,7 +23,7 @@ sounds =
 window.EB.onload = !->
 
   width  = 600
-  height = 350
+  height = 340
 
   body = d3.select \body
 
@@ -37,7 +37,7 @@ window.EB.onload = !->
 
   game.append \img
     .attr \width  "#{width}px"
-    .attr \height "#{height - 50}px"
+    .attr \height "#{height - 40}px"
     .attr \src 'res/table.svg'
 
   balls = for n til 16 then id: n, x: n * 25 + 100, y: 100
@@ -55,11 +55,11 @@ window.EB.onload = !->
     .style \left -> it.x - 10 + \px
 
   game.append \div
-    .style \top "#{height - 50}px"
+    .style \top "#{height - 40}px"
     .style \width  \100%
-    .style \height \50px
+    .style \height \40px
     .style \text-align \center
-    .style \line-height \50px
+    .style \line-height \40px
     .text 'Under Construction...'
 
   init-physics!
