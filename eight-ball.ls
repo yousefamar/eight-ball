@@ -111,7 +111,7 @@ handlers =
 connect = (callback) !->
   uid = null
 
-  sock = new W3CWebSocket 'ws://amar.io:9981/' \eight-ball
+  sock = new W3CWebSocket 'ws://amar.io:9982/' \eight-ball
 
     ..onerror = !->
       console.error 'Could not connect to server'

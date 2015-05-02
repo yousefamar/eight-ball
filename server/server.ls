@@ -6,7 +6,7 @@ server = http.create-server (request, response) !->
   response.write-head 404
   response.end!
 
-server.listen 9981 !->
+server.listen 9982 !->
   console.log 'Server started'
 
 ws-server = new WebSocketServer {
