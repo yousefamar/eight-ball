@@ -1,6 +1,8 @@
-require! { d3, './lib/physicsjs-full.min.js': physics }
+require! { url, d3, websocket: { w3cwebsocket: W3CWebSocket }:ws }
 
 window.EB = {}
+
+get-vars = window.location.href |> url.parse _, true |> (.query)
 
 build-audio-player = (url, clone-count) ->
   audio = new Audio url
@@ -20,8 +22,116 @@ sounds =
   cue-shot:
     play: build-audio-player 'res/cue-shot.ogg' 1
 
-window.EB.onload = !->
+sock-send = !-> console.error 'Cannot send to server'
 
+is-own-turn = false
+is-stick-visible = false
+is-own-stick = false
+aim-x = 0
+aim-y = 0
+aim-angle = 0
+
+player-name = null
+player-names = []
+spectator-count = 0
+
+handlers =
+
+  'game-state': (data) !->
+    if data.players[0]? then d3.select \#player1-name .text player-names[0] = data.players[0]
+    if data.players[1]? then d3.select \#player2-name .text player-names[1] = data.players[1]
+    d3.select \#spectator-panel .text "Spectators: #{spectator-count := data.spectator-count}"
+
+    for ball-state in data.ball-states
+      ball = d3.select \# + ball-state.id
+      if ball-state.sunk
+        ball.remove!
+        continue
+      ball
+        .attr \data-x ball-state.x
+        .attr \data-y ball-state.y
+        .style \top  ball-state.y - 10 + \px
+        .style \left ball-state.x - 10 + \px
+
+  'join': (name) !->
+    if name?
+      unless player-names[0]?
+        d3.select \#player1-name .text player-names[0] = name
+      else
+        d3.select \#player2-name .text player-names[1] = name
+    else
+      d3.select \#spectator-panel .text "Spectators: #{++spectator-count}"
+
+  'part': (name) !->
+    if name?
+      is-own-turn := false
+      player-names.index-of name |> player-names.splice _, 1
+      d3.select \#player1-name
+        .style \color \#EEEEEE
+        .text if player-names[0]? then player-names[0] else 'Waiting for player 1...'
+      d3.select \#player2-name
+        .style \color \#EEEEEE
+        .text if player-names[1]? then player-names[1] else 'Waiting for player 2...'
+    else
+      d3.select \#spectator-panel .text "Spectators: #{--spectator-count}"
+
+  'ball-pos': (poss) !->
+    for pos in poss
+      d3.select \# + pos.id
+        .attr \data-x pos.x
+        .attr \data-y pos.y
+        .style \top  pos.y - 10 + \px
+        .style \left pos.x - 10 + \px
+
+  'ball-sink': (id) !->
+    d3.select \# + id .remove!
+    sounds.pocket.play 1
+
+  'ball-collision': (overlap) !->
+    sounds.ball-collision.play overlap
+
+  'turn': (player-id) !->
+    is-own-turn := player-names[player-id] is player-name
+    d3.select \#player1-name .style \color \#555555
+    d3.select \#player2-name .style \color \#555555
+    d3.select "\#player#{player-id + 1}-name" .style \color \#EEEEEE
+
+  'aim': (coords) !->
+    is-stick-visible := true
+    is-own-stick     := false
+    aim-x := coords.x
+    aim-y := coords.y
+    update-aim-angle!
+
+  'shoot': !->
+    is-stick-visible := false
+    sounds.cue-shot.play 1
+
+
+connect = (callback) !->
+  uid = null
+
+  sock = new W3CWebSocket 'ws://localhost:9981/' \eight-ball
+
+    ..onerror = !->
+      console.error 'Could not connect to server'
+
+    ..onopen = !->
+      console.log 'Connected to server'
+      callback!
+
+    ..onclose = !->
+      console.log 'Connection to server closed'
+
+    ..onmessage = (event) !->
+      try message = JSON.parse event.data catch then return
+      if message.type? then handlers[message.type]? message.data
+
+  window.onbeforeunload = !-> sock.close!
+
+  sock-send := (type, data) !-> { type, data } |> JSON.stringify |> sock.send
+
+window.EB.onload = !->
   width  = 600
   height = 340
 
@@ -54,41 +164,89 @@ window.EB.onload = !->
     .style \top  -> it.y - 10 + \px
     .style \left -> it.x - 10 + \px
 
-  game.append \div
+  info-bar = game.append \div
+    .attr  \id \info-bar
     .style \top "#{height - 40}px"
     .style \width  \100%
     .style \height \40px
-    .style \text-align \center
-    .style \line-height \40px
-    .text 'Under Construction...'
+    #.style \text-align \center
+    #.style \line-height \40px
 
-  init-physics!
+  player-panel = info-bar.append \div
+    .style \position \relative
+    .style \float \left
+    .style \font-size \50%
+
+  player-panel.append \div
+    .attr \id \player1-name
+    .style \position \relative
+    .style \margin '10px 30px'
+    .text 'Waiting for player 1...'
+
+  player-panel.append \div
+    .attr \id \player2-name
+    .style \position \relative
+    .style \margin '10px 30px'
+    .text 'Waiting for player 2...'
+
+  info-bar.append \div
+    .attr \id \spectator-panel
+    .style \position \relative
+    .style \float \right
+    .style \margin '10px 30px'
+    .style \font-size \50%
+    .text 'Spectators: 0'
+
+  <-! connect
+
+  if \player of get-vars
+    window.EB.submit-name = !->
+      player-name := it
+      sock-send \join { get-vars.roomid, name: it }
+      name-asker.style \display \none
+      init-controls!
+
+    name-asker = game.append \div
+      .style \width  "#{width}px"
+      .style \height "#{height}px"
+      .style \background-color \#841F27
+    container = name-asker.append \div
+      .style \width  \100%
+      .style \height \100%
+      .style \text-align \center
+      .style \margin-top \125px
+    container.append \div
+      .style \position \relative
+      .text "Hi! What's your name?"
+    container.append \input
+      .attr \type \text
+      .attr \autofocus \true
+      .attr \maxlength \20
+      .attr \onkeyup "if (event.keyCode == 13) window.EB.submitName(this.value);"
+      .style \position \relative
+      .style \margin-top \20px
+      .style \padding \6px
+      .style \border-radius \4px
+      .style \background-color \#155843
+      .style \color \#EEEEEE
+      .style \font-family "'Press Start 2P', sans-serif"
+      .style \text-transform \uppercase
+
+    return
+
   init-controls!
 
-cue-ball = null
-is-mouse-down = false
-last-mouse-x = 0
-last-mouse-y = 0
-last-aim-angle = 0
+  sock-send \join { get-vars.roomid }
 
-init-physics = !->
-  ball-imgs = d3.select-all \.ball
+update-aim-angle = !->
+  cue-ball = d3.select \#ball-0
+  x = aim-x - parse-float cue-ball.attr \data-x
+  y = aim-y - parse-float cue-ball.attr \data-y
+  aim-angle := 1.57079632679 + Math.atan2 y, x
 
-  world <-! physics {
-    timestep: 6
-    max-IPF:  4
-  }
-
-  physics.renderer \custom, ->
-    render: (bodies) !->
-      ball-imgs
-        .data (for ball in balls then x: ball.state.pos.x, y: ball.state.pos.y)
-        .style \top  -> it.y - 10 + \px
-        .style \left -> it.x - 10 + \px
-
-  world.add physics.renderer \custom
-
+init-controls = !->
   game = d3.select \#game
+  is-mouse-down = false
 
   stick = game.append \img
     .attr \width  "20px"
@@ -110,113 +268,61 @@ init-physics = !->
       .style \stroke \#771F1F
       .style \stroke-width \2
 
-  physics.util.ticker.on (time) !->
-    world.step time
-    world.render!
-    if is-mouse-down
-      cue-x = cue-ball.state.pos.x
-      cue-y = cue-ball.state.pos.y
+  cue-ball = d3.select \#ball-0
+
+  render = !->
+    request-animation-frame render
+
+    if is-stick-visible
+      cue-x = parse-float cue-ball.attr \data-x
+      cue-y = parse-float cue-ball.attr \data-y
       stick
         .style \top  cue-y + \px
         .style \left cue-x - 10 + \px
-        .style \transform "rotate(#{last-aim-angle}rad) translate(0px, 20px)"
+        .style \transform "rotate(#{aim-angle}rad) translate(0px, 20px)"
+        .style \opacity if is-own-stick then 1 else 0.5
         .style \visibility \visible
       line
         .attr \x1 cue-x
         .attr \y1 cue-y
-        .attr \x2 last-mouse-x
-        .attr \y2 last-mouse-y
+        .attr \x2 aim-x
+        .attr \y2 aim-y
+        .style \opacity if is-own-stick then 1 else 0.5
         .attr \visibility \visible
     else
       line.attr   \visibility \hidden
       stick.style \visibility \hidden
 
-  world.add physics.behavior \edge-collision-detection,
-      aabb: physics.aabb 25 25 575 275
-      restitution: 0.8
-      cof: 0
+  request-animation-frame render
 
-  world.add balls = for n til 16
-    physics.body \circle,
-      id: "ball-#n"
-      class: \ball
-      x: n * 25 + 100
-      y: 100
-      vx: (Math.random! - 0.5)
-      vy: (Math.random! - 0.5)
-      radius: 10
-      restitution: 1
-      cof: 0
-
-  cue-ball := balls[0]
-
-  world.add holes = for n til 6
-    physics.body \circle,
-      class: \hole
-      treatment: \static
-      x: 30 + (n % 3) * 270
-      y: 30 + (Math.floor(n / 3)) * 240
-      radius: 8
-
-  holes[1].state.pos.y -= 8
-  holes[4].state.pos.y += 8
-
-  #for hole in holes
-  #  game.append \div
-  #    .style \top  "#{hole.state.pos.y - 8}px"
-  #    .style \left "#{hole.state.pos.x - 8}px"
-  #    .style \width  "16px"
-  #    .style \height "16px"
-  #    .style \background-color \red
-  #    .style \border-radius \8px
-
-  world.add [
-    physics.behavior \body-impulse-response
-    physics.behavior \body-collision-detection
-    physics.behavior \sweep-prune
-    physics.integrator \velocity-verlet drag: 0.004
-  ]
-
-  world.on \collisions:detected (data) !-> for c in data.collisions then world.emit \collision-pair { c.body-a, c.body-b, c.overlap }
-
-  world.on \collision-pair !->
-    it.overlap = Math.max 0 Math.min 1 it.overlap
-    if it.body-a.class is \ball and it.body-b.class is \ball then sounds.ball-collision.play it.overlap
-    sinkee = null
-    if      it.body-a.class is \ball and it.body-b.class is \hole then sinkee = it.body-a
-    else if it.body-b.class is \ball and it.body-a.class is \hole then sinkee = it.body-b
-    if sinkee?
-      d3.select \# + sinkee.id .remove!
-      world.remove-body sinkee
-      sounds.pocket.play 1
-
-  physics.util.ticker.start!
-
-
-init-controls = !->
-  update-aim-angle = !->
-    x = last-mouse-x - cue-ball.state.pos.x
-    y = last-mouse-y - cue-ball.state.pos.y
-    last-aim-angle := 1.57079632679 + Math.atan2 y, x
+  unless \player of get-vars then return
 
   on-down = !->
-    is-mouse-down := true
+    unless is-own-turn then return
+    is-mouse-down    := true
+    is-stick-visible := true
+    is-own-stick     := true
     update-aim-angle!
   on-up   = !->
-    is-mouse-down := false
+    unless is-own-turn then return
+    is-own-turn := false
+    is-mouse-down    := false
+    is-stick-visible := false
     force =
-      x: last-mouse-x - cue-ball.state.pos.x
-      y: last-mouse-y - cue-ball.state.pos.y
+      x: aim-x - parse-float cue-ball.attr \data-x
+      y: aim-y - parse-float cue-ball.attr \data-y
     mag = 10 * Math.sqrt (force.x * force.x + force.y * force.y)
     force.x /= mag
     force.y /= mag
-    cue-ball.sleep false
-    cue-ball.apply-force force
+    sock-send \shoot force
     sounds.cue-shot.play 1
   on-move = !->
-    last-mouse-x := it.client-x
-    last-mouse-y := it.client-y
-    if is-mouse-down then update-aim-angle!
+    unless is-own-turn then return
+    aim-x := it.client-x
+    aim-y := it.client-y
+    if is-mouse-down
+      update-aim-angle!
+      sock-send \aim { x: aim-x, y: aim-y }
 
   document.body.add-event-listener
     .. \mousedown  on-down
