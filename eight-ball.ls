@@ -31,7 +31,6 @@ aim-x = 0
 aim-y = 0
 aim-angle = 0
 
-player-name = null
 player-names = []
 spectator-count = 0
 
@@ -91,7 +90,7 @@ handlers =
     sounds.ball-collision.play overlap
 
   'turn': (player-id) !->
-    is-own-turn := player-names[player-id] is player-name
+    is-own-turn := player-names[player-id] is get-vars.player
     d3.select \#player1-name .style \color \#555555
     d3.select \#player2-name .style \color \#555555
     d3.select "\#player#{player-id + 1}-name" .style \color \#EEEEEE
@@ -199,43 +198,8 @@ window.EB.onload = !->
 
   <-! connect
 
-  if \player of get-vars
-    player-name := 'Player ' + 'xxxxxx'.replace /[x]/g, -> (Math.random!*36.|.0).toString 36
-    sock-send \join { get-vars.roomid, name: player-name }
-    #name-asker.style \display \none
-    init-controls!
-    /*
-    name-asker = game.append \div
-      .style \width  "#{width}px"
-      .style \height "#{height}px"
-      .style \background-color \#841F27
-    container = name-asker.append \div
-      .style \width  \100%
-      .style \height \100%
-      .style \text-align \center
-      .style \margin-top \125px
-    container.append \div
-      .style \position \relative
-      .text "Hi! What's your name?"
-    container.append \input
-      .attr \type \text
-      .attr \autofocus \true
-      .attr \maxlength \20
-      .attr \onkeyup "if (event.keyCode == 13) window.EB.submitName(this.value);"
-      .style \position \relative
-      .style \margin-top \20px
-      .style \padding \6px
-      .style \border-radius \4px
-      .style \background-color \#155843
-      .style \color \#EEEEEE
-      .style \font-family "'Press Start 2P', sans-serif"
-      .style \text-transform \uppercase
-    */
-    return
-
+  sock-send \join { get-vars.roomid, name: get-vars.player }
   init-controls!
-
-  sock-send \join { get-vars.roomid }
 
 update-aim-angle = !->
   cue-ball = d3.select \#ball-0
