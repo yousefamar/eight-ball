@@ -200,12 +200,11 @@ window.EB.onload = !->
   <-! connect
 
   if \player of get-vars
-    window.EB.submit-name = !->
-      player-name := it
-      sock-send \join { get-vars.roomid, name: it }
-      name-asker.style \display \none
-      init-controls!
-
+    player-name := 'Player ' + 'xxxxxx'.replace /[x]/g, -> (Math.random!*36.|.0).toString 36
+    sock-send \join { get-vars.roomid, name: player-name }
+    #name-asker.style \display \none
+    init-controls!
+    /*
     name-asker = game.append \div
       .style \width  "#{width}px"
       .style \height "#{height}px"
@@ -231,7 +230,7 @@ window.EB.onload = !->
       .style \color \#EEEEEE
       .style \font-family "'Press Start 2P', sans-serif"
       .style \text-transform \uppercase
-
+    */
     return
 
   init-controls!
