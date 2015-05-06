@@ -7,7 +7,7 @@ server = http.create-server (request, response) !->
   response.end!
 
 server.listen 9982 !->
-  console.log 'Server started'
+  console.log new Date! + ' Server started'
 
 ws-server = new WebSocketServer {
   http-server: server
@@ -30,7 +30,7 @@ handlers =
     connection.room = room
     room.join connection
 
-    console.log (if data.name? then "Player #{data.name}" else 'Spectator') + " joined #{data.roomid} (P: #{room.players.length}, S: #{room.spectators.length}, T: #{room.connections.length})."
+    console.log new Date! + (if data.name? then " Player #{data.name}" else ' Spectator') + " joined #{data.roomid} (P: #{room.players.length}, S: #{room.spectators.length}, T: #{room.connections.length})."
 
   aim: (data, connection) !->
     unless connection.room? then return
@@ -47,12 +47,12 @@ handlers =
 ws-server.on \request (request) !->
   unless origin-allowed request.origin
     request.reject!
-    console.log 'Connection from origin ' + request.origin + ' rejected'
+    console.log new Date! + ' Connection from origin ' + request.origin + ' rejected'
     return
 
   connection = request.accept \eight-ball request.origin
 
-  console.log 'Connection accepted'
+  console.log new Date! + ' Connection accepted'
 
   connection.send = (type, data) !-> { type, data } |> JSON.stringify |> connection.send-UTF
 
@@ -61,11 +61,10 @@ ws-server.on \request (request) !->
       try message = JSON.parse message.utf8-data catch then return
       if message.type? then handlers[message.type]? message.data, connection
     #else if message.type is 'binary'
-    #  console.log 'Received Binary Message of ' + message.binary-data.length + ' bytes'
-    #  connection.send-UTF 'hallo'
+    #  console.log new Date! + ' Received Binary Message of ' + message.binary-data.length + ' bytes'
 
   connection.on \close (reason-code, description) !->
     if connection.room?
       connection.room.part connection
       if connection.room.connections.length is 0 then delete rooms[connection.room.id]
-    console.log "Client #{connection.remote-address} disconnected"
+    console.log new Date! + " Client #{connection.remote-address} disconnected"

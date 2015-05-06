@@ -1,6 +1,37 @@
 require! { './lib/physicsjs-full.min.js': physics }
 
 export class Room
+
+  width  = 600
+  height = 340
+
+  width-edge = width / 24
+  width-felt = width - 2 * width-edge
+  line-x = width-edge + width-felt / 5
+  balls-x = width - width-edge - width-felt / 4
+
+  radius = 10
+  diameter = 2 * radius
+  offset = Math.sqrt (diameter * diameter) - (radius * radius)
+
+  @init-ball-poss =
+    { x: line-x, y: 150 }
+    { x: balls-x, y: 150 }
+    { x: balls-x + 3 * offset, y: 150 - 1 * radius }
+    { x: balls-x + 2 * offset, y: 150 + 2 * radius }
+    { x: balls-x + 4 * offset, y: 150 + 4 * radius }
+    { x: balls-x + 1 * offset, y: 150 - 1 * radius }
+    { x: balls-x + 4 * offset, y: 150 }
+    { x: balls-x + 4 * offset, y: 150 - 2 * radius }
+    { x: balls-x + 2 * offset, y: 150 }
+    { x: balls-x + 3 * offset, y: 150 + 3 * radius }
+    { x: balls-x + 1 * offset, y: 150 + 1 * radius }
+    { x: balls-x + 4 * offset, y: 150 - 4 * radius }
+    { x: balls-x + 2 * offset, y: 150 - 2 * radius }
+    { x: balls-x + 3 * offset, y: 150 + 1 * radius }
+    { x: balls-x + 3 * offset, y: 150 - 3 * radius }
+    { x: balls-x + 4 * offset, y: 150 + 2 * radius }
+
   (@id) ->
     # States: waiting, simulating, playing
     @state = \waiting
@@ -87,10 +118,10 @@ export class Room
       physics.body \circle,
         id: "ball-#n"
         class: \ball
-        x: n * 25 + 100
-        y: 100
-        vx: (Math.random! - 0.5)
-        vy: (Math.random! - 0.5)
+        x: @@init-ball-poss[n].x
+        y: @@init-ball-poss[n].y
+        #vx: (Math.random! - 0.5)
+        #vy: (Math.random! - 0.5)
         radius: 10
         restitution: 1
         cof: 0

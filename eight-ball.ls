@@ -149,7 +149,34 @@ window.EB.onload = !->
     .attr \height "#{height - 40}px"
     .attr \src 'res/table.svg'
 
-  balls = for n til 16 then id: n, x: n * 25 + 100, y: 100
+  radius = 10
+  diameter = 2 * radius
+  offset = Math.sqrt (diameter * diameter) - (radius * radius)
+
+  width-edge = width / 24
+  width-felt = width - 2 * width-edge
+  line-x = width-edge + width-felt / 5
+  balls-x = width - width-edge - width-felt / 4
+
+  init-ball-poss =
+    { x: line-x, y: 150 }
+    { x: balls-x, y: 150 }
+    { x: balls-x + 3 * offset, y: 150 - 1 * radius }
+    { x: balls-x + 2 * offset, y: 150 + 2 * radius }
+    { x: balls-x + 4 * offset, y: 150 + 4 * radius }
+    { x: balls-x + 1 * offset, y: 150 - 1 * radius }
+    { x: balls-x + 4 * offset, y: 150 }
+    { x: balls-x + 4 * offset, y: 150 - 2 * radius }
+    { x: balls-x + 2 * offset, y: 150 }
+    { x: balls-x + 3 * offset, y: 150 + 3 * radius }
+    { x: balls-x + 1 * offset, y: 150 + 1 * radius }
+    { x: balls-x + 4 * offset, y: 150 - 4 * radius }
+    { x: balls-x + 2 * offset, y: 150 - 2 * radius }
+    { x: balls-x + 3 * offset, y: 150 + 1 * radius }
+    { x: balls-x + 3 * offset, y: 150 - 3 * radius }
+    { x: balls-x + 4 * offset, y: 150 + 2 * radius }
+
+  balls = for n til 16 then id: n, x: init-ball-poss[n].x, y: init-ball-poss[n].y
 
   game.select-all \.ball
     .data balls
