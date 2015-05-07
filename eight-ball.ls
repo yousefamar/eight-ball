@@ -134,20 +134,10 @@ window.EB.onload = !->
   width  = 600
   height = 340
 
-  body = d3.select \body
-
-  game = body.append \div
-    .attr  \id \game
-    .style \width  "#{width}px"
-    .style \height "#{height}px"
-    .style \background-color \black
-    .style \border-radius \30px
-    .style \overflow \hidden
-
-  game.append \img
-    .attr \width  "#{width}px"
-    .attr \height "#{height - 40}px"
-    .attr \src 'res/table.svg'
+  game = d3.select \#game
+  game-rect = game.node!.get-bounding-client-rect!
+  width = game-rect.width
+  height = game-rect.height
 
   radius = 10
   diameter = 2 * radius
@@ -189,39 +179,6 @@ window.EB.onload = !->
     .attr  \src  -> "res/ball-#{it.id}.svg"
     .style \top  -> it.y - 10 + \px
     .style \left -> it.x - 10 + \px
-
-  info-bar = game.append \div
-    .attr  \id \info-bar
-    .style \top "#{height - 40}px"
-    .style \width  \100%
-    .style \height \40px
-    #.style \text-align \center
-    #.style \line-height \40px
-
-  player-panel = info-bar.append \div
-    .style \position \relative
-    .style \float \left
-    .style \font-size \50%
-
-  player-panel.append \div
-    .attr \id \player1-name
-    .style \position \relative
-    .style \margin '10px 30px'
-    .text 'Waiting for player 1...'
-
-  player-panel.append \div
-    .attr \id \player2-name
-    .style \position \relative
-    .style \margin '10px 30px'
-    .text 'Waiting for player 2...'
-
-  info-bar.append \div
-    .attr \id \spectator-panel
-    .style \position \relative
-    .style \float \right
-    .style \margin '10px 30px'
-    .style \font-size \50%
-    .text 'Spectators: 0'
 
   <-! connect
 
