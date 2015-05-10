@@ -38,11 +38,22 @@ body {
 #player-panel {
 	position: relative;
 	float: left;
+	width: 75%;
 	font-size: 50%;
 }
-#player-panel .name {
+#player-panel .player {
 	position: relative;
 	margin: 10px 30px;
+}
+#player-panel .player .sunk-balls {
+	margin-left: 40%;
+}
+#player-panel .player .sunk-balls img {
+	position: relative;
+	float: left;
+	width: 14px;
+	height: 14px;
+	transform: translate(-7px, -7px);
 }
 #spectator-panel {
 	position: relative;

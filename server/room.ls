@@ -35,7 +35,7 @@ export class Room
   (@id) ->
     # States: waiting, simulating, playing
     @state = \waiting
-    @turn = 0
+    @turn = -1
     @connections = []
     @players     = []
     @spectators  = []
@@ -106,6 +106,7 @@ export class Room
       if ball-poss.length then self.broadcast \ball-pos ball-poss
 
       if all-balls-sleeping!
+        self.turn = (self.turn + 1) % 2
         self.state = \playing
         self.broadcast \turn self.turn
 
@@ -131,16 +132,15 @@ export class Room
     cue-ball = balls[0]
 
     self.aim = (coords, connection) !->
-      unless self.state is \playing and connection is @players[@turn] then return
+      unless @state is \playing and connection is @players[@turn] then return
       connection.room.broadcast-as connection, \aim, coords
 
     self.shoot = (force, connection) !->
-      unless self.state is \playing and connection is @players[@turn] then return
-      self.state = \simulating
+      unless @state is \playing and connection is @players[@turn] then return
+      @state = \simulating
       cue-ball.sleep false
       cue-ball.apply-force force
-      @turn = (@turn + 1) % 2
-      self.broadcast-as connection, \shoot
+      @broadcast-as connection, \shoot
 
     world.add holes = for n til 6
       physics.body \circle,
@@ -172,6 +172,6 @@ export class Room
         sinkee.sunk = true
         sinkee.sleep true
         world.remove-body sinkee
-        self.broadcast \ball-sink sinkee.id
+        self.broadcast \ball-sink { sinkee.id, self.turn }
 
     set-timeout tick, 1000.0/60.0

@@ -37,8 +37,8 @@ spectator-count = 0
 handlers =
 
   'game-state': (data) !->
-    if data.players[0]? then d3.select \#player1-name .text player-names[0] = data.players[0]
-    if data.players[1]? then d3.select \#player2-name .text player-names[1] = data.players[1]
+    if data.players[0]? then d3.select '#p0 .name' .text player-names[0] = data.players[0]
+    if data.players[1]? then d3.select '#p1 .name' .text player-names[1] = data.players[1]
     d3.select \#spectator-panel .text "Spectators: #{spectator-count := data.spectator-count}"
 
     for ball-state in data.ball-states
@@ -55,9 +55,9 @@ handlers =
   'join': (name) !->
     if name?
       unless player-names[0]?
-        d3.select \#player1-name .text player-names[0] = name
+        d3.select '#p0 .name' .text player-names[0] = name
       else
-        d3.select \#player2-name .text player-names[1] = name
+        d3.select '#p1 .name' .text player-names[1] = name
     else
       d3.select \#spectator-panel .text "Spectators: #{++spectator-count}"
 
@@ -65,10 +65,10 @@ handlers =
     if name?
       is-own-turn := false
       player-names.index-of name |> player-names.splice _, 1
-      d3.select \#player1-name
+      d3.select '#p0 .name'
         .style \color \#EEEEEE
         .text if player-names[0]? then player-names[0] else 'Waiting for player 1...'
-      d3.select \#player2-name
+      d3.select '#p1 .name'
         .style \color \#EEEEEE
         .text if player-names[1]? then player-names[1] else 'Waiting for player 2...'
     else
@@ -82,18 +82,30 @@ handlers =
         .style \top  pos.y - 10 + \px
         .style \left pos.x - 10 + \px
 
-  'ball-sink': (id) !->
-    d3.select \# + id .remove!
+  'ball-sink': (data) !->
+    d3.select \# + data.id .remove!
     sounds.pocket.play 1
+    d3.select '#p' + data.turn + ' .sunk-balls'
+      .append \img
+      .attr \src -> "res/#{data.id}.svg"
 
   'ball-collision': (overlap) !->
     sounds.ball-collision.play overlap
 
-  'turn': (player-id) !->
-    is-own-turn := player-names[player-id] is get-vars.player
-    d3.select \#player1-name .style \color \#555555
-    d3.select \#player2-name .style \color \#555555
-    d3.select "\#player#{player-id + 1}-name" .style \color \#EEEEEE
+  'turn': do ->
+    first-turn = true
+    (player-id) !->
+      if first-turn
+        max-name-width = Math.max(
+          d3.select '#p0 .name' .node!.get-bounding-client-rect!.right
+          d3.select '#p1 .name' .node!.get-bounding-client-rect!.right
+        )
+        d3.select-all '.sunk-balls' .style \margin-left max-name-width + \px
+        first-turn := false
+      is-own-turn := player-names[player-id] is get-vars.player
+      d3.select '#p0 .name' .style \color \#555555
+      d3.select '#p1 .name' .style \color \#555555
+      d3.select "\#p#{player-id} .name" .style \color \#EEEEEE
 
   'aim': (coords) !->
     is-stick-visible := true
@@ -251,7 +263,7 @@ init-controls = !->
     is-own-stick     := true
     update-aim-angle!
   on-up   = !->
-    unless is-own-turn then return
+    unless is-own-turn and is-mouse-down then return
     is-own-turn := false
     is-mouse-down    := false
     is-stick-visible := false
