@@ -1,0 +1,52 @@
+* {
+	position: absolute;
+	margin: 0;
+	padding: 0;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+body {
+	color: #EEEEEE;
+	font-family: 'Press Start 2P', sans-serif;
+	font-size: 80%;
+	text-transform: uppercase;
+	border-radius: 30px;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+#game {
+	width:  600px;
+	height: 340px;
+	background-color: black;
+	border-radius: 30px;
+	overflow: hidden;
+}
+#pool-table {
+	width: 100%;
+	height: calc(100% - 40px);
+}
+#info-bar {
+	top: calc(100% - 40px);
+	width:  100%;
+	height: 40px;
+}
+#player-panel {
+	position: relative;
+	float: left;
+	font-size: 50%;
+}
+#player-panel .name {
+	position: relative;
+	margin: 10px 30px;
+}
+#spectator-panel {
+	position: relative;
+	float: right;
+	margin: 10px 30px;
+	font-size: 50%;
+}
