@@ -96,11 +96,11 @@ handlers =
     first-turn = true
     (player-id) !->
       if first-turn
-        max-name-width = Math.max(
-          d3.select '#p0 .name' .node!.get-bounding-client-rect!.right
-          d3.select '#p1 .name' .node!.get-bounding-client-rect!.right
+        max-name-width = 10px + Math.max(
+          d3.select '#p0 .name' .node!.get-bounding-client-rect!.width
+          d3.select '#p1 .name' .node!.get-bounding-client-rect!.width
         )
-        d3.select-all '.sunk-balls' .style \margin-left max-name-width + \px
+        d3.select-all '.sunk-balls' .style \left max-name-width + \px
         first-turn := false
       is-own-turn := player-names[player-id] is get-vars.player
       d3.select '#p0 .name' .style \color \#555555

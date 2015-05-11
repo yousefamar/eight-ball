@@ -41,20 +41,31 @@ body {
 	float: left;
 	width: 75%;
 	font-size: 50%;
+	margin-top: 7px;
 }
 #player-panel .player {
 	position: relative;
-	margin: 10px 30px;
+	clear: both;
+	float: none;
+	margin-left: 30px;
+	margin-bottom: 2px;
+}
+#player-panel .player .name {
+	position: relative;
+	display: inline-block;
+	height: 14px;
+	line-height: 14px;
+	vertical-align: middle;
 }
 #player-panel .player .sunk-balls {
-	margin-left: 40%;
+	left: 40%;
+	display: inline-block;
 }
 #player-panel .player .sunk-balls img {
 	position: relative;
-	float: left;
+	display: inline-block;
 	width: 14px;
 	height: 14px;
-	transform: translate(-7px, -7px);
 }
 #spectator-panel {
 	position: relative;
