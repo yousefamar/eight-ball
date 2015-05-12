@@ -122,7 +122,8 @@ handlers =
 connect = (callback) !->
   uid = null
 
-  sock = new W3CWebSocket 'ws://amar.io:9982/' \eight-ball
+  { location : loc } = window
+  sock = new W3CWebSocket "ws://#{loc.hostname}:#{loc.port}/" \eight-ball
 
     ..onerror = !->
       console.error 'Could not connect to server'
