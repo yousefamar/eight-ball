@@ -1,10 +1,8 @@
 #!/usr/bin/env lsc
 
-require! { http, websocket: { server: WebSocketServer }:ws, './room.ls': { Room } }
+require! { http, ecstatic, websocket: { server: WebSocketServer }:ws, './room.ls': { Room } }
 
-server = http.create-server (request, response) !->
-  response.write-head 404
-  response.end!
+server = http.create-server ecstatic { root : "#__dirname/..", default-ext : \html }
 
 server.listen 9982 !->
   console.log new Date! + ' Server started'
