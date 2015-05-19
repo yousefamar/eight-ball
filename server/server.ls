@@ -7,10 +7,9 @@ server = http.create-server ecstatic { root : "#__dirname/..", default-ext : \ht
 server.listen 9982 !->
   console.log new Date! + ' Server started'
 
-ws-server = new WebSocketServer {
+ws-server = new WebSocketServer do
   http-server: server
   auto-accept-connections: false
-}
 
 # TODO: Check origin
 origin-allowed = (origin) -> true
@@ -20,7 +19,7 @@ rooms = {}
 handlers =
 
   join: (data, connection) !->
-    unless data.roomid then return
+    return unless data.roomid
     if data.roomid not of rooms then rooms[data.roomid] = new Room data.roomid
     room = rooms[data.roomid]
 
@@ -31,26 +30,25 @@ handlers =
     console.log new Date! + (if data.name? then " Player #{data.name}" else ' Spectator') + " joined #{data.roomid} (P: #{room.players.length}, S: #{room.spectators.length}, T: #{room.connections.length})."
 
   aim: (data, connection) !->
-    unless connection.room? then return
+    return unless connection.room?
     connection.room.aim? data, connection
 
   shoot: (data, connection) !->
-    unless connection.room? and connection.name? then return
+    return unless connection.room? and connection.name?
     connection.room.shoot? data, connection
 
   place: (data, connection) !->
-    unless connection.room? and connection.name? then return
+    return unless connection.room? and connection.name?
     connection.room.place? data, connection
 
   broadcast: (data, connection) !->
-    unless connection.room? then return
+    return unless connection.room?
     connection.room.broadcast-as connection, \broadcast, data
 
 ws-server.on \request (request) !->
   unless origin-allowed request.origin
     request.reject!
-    console.log new Date! + ' Connection from origin ' + request.origin + ' rejected'
-    return
+    log "Connection from origin #{request.origin} rejected"
 
   connection = request.accept \eight-ball request.origin
 
