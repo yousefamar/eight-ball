@@ -3,6 +3,8 @@
 A web-based implementation of the popular [8-ball][1] pool game, intended to be
 embedded in [Manyland][2], but works stand-alone too!
 
+![example gameplay](https://cloud.githubusercontent.com/assets/5231746/7707575/6356625c-fe48-11e4-9484-298b1e191b96.gif)
+
 ## Run instructions
 
 `npm install`, then `npm start`!
