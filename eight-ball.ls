@@ -39,8 +39,8 @@ spectator-count = 0
 handlers =
 
   'game-state': (data) !->
-    if data.players[0]? then d3.select '#p0 .name' .text player-names[0] = data.players[0]
-    if data.players[1]? then d3.select '#p1 .name' .text player-names[1] = data.players[1]
+    if data.players[0]? then d3.select '#p0 .name' .text (player-names[0] = data.players[0]) + ' (Solids)'
+    if data.players[1]? then d3.select '#p1 .name' .text (player-names[1] = data.players[1]) + ' (Stripes)'
     d3.select \#spectator-panel .text "Spectators: #{spectator-count := data.spectator-count}"
 
     for ball-state in data.ball-states
@@ -57,9 +57,9 @@ handlers =
   'join': (name) !->
     if name?
       unless player-names[0]?
-        d3.select '#p0 .name' .text player-names[0] = name
+        d3.select '#p0 .name' .text (player-names[0] = name) + ' (Solids)'
       else
-        d3.select '#p1 .name' .text player-names[1] = name
+        d3.select '#p1 .name' .text (player-names[1] = name) + ' (Stripes)'
     else
       d3.select \#spectator-panel .text "Spectators: #{++spectator-count}"
 
@@ -69,10 +69,10 @@ handlers =
       player-names.index-of name |> player-names.splice _, 1
       d3.select '#p0 .name'
         .style \color \#EEEEEE
-        .text if player-names[0]? then player-names[0] else 'Waiting for player 1...'
+        .text if player-names[0]? then (player-names[0] + ' (Solids)') else 'Waiting for player 1...'
       d3.select '#p1 .name'
         .style \color \#EEEEEE
-        .text if player-names[1]? then player-names[1] else 'Waiting for player 2...'
+        .text if player-names[1]? then (player-names[1] + ' (Stripes)') else 'Waiting for player 2...'
     else
       d3.select \#spectator-panel .text "Spectators: #{--spectator-count}"
 
@@ -283,9 +283,9 @@ init-controls = !->
   unless \player of get-vars then return
 
   on-down = !->
+    unless is-own-turn then return
     is-mouse-down := true
     on-move it
-    unless is-own-turn then return
     if is-cue-being-placed then return
     is-stick-visible := true
   on-up   = !->

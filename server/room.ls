@@ -47,6 +47,7 @@ export class Room
     @players     = []
     @spectators  = []
     @balls = []
+    @continue-turn = false
 
   join: (connection) !->
     if connection.name? and @players.length >= 2 then delete connection.name
@@ -100,7 +101,9 @@ export class Room
 
     for ball in @balls then unless ball.sleep! then return
 
-    @turn = (@turn + 1) % 2
+    unless @continue-turn
+      @turn = (@turn + 1) % 2
+    @continue-turn = false
     @state = \playing
     @broadcast \turn @turn
 
@@ -193,3 +196,10 @@ export class Room
         sinkee.sleep true
         world.remove-body sinkee
         self.broadcast \ball-sink { sinkee.id, self.turn }
+        if balls[0].sunk
+          self.continue-turn = false
+          return
+        if (balls.index-of sinkee) < 9
+          if self.turn is 0 then self.continue-turn = true
+        else
+          if self.turn is 1 then self.continue-turn = true
