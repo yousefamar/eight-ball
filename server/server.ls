@@ -66,3 +66,9 @@ ws-server.on \request (request) !->
       connection.room.part connection
       if connection.room.connections.length is 0 then delete rooms[connection.room.id]
     console.log new Date! + " Client #{connection.remote-address} disconnected"
+
+tick = !->
+  set-timeout tick, 1000.0/60.0
+  for i, room of rooms then room.tick!
+
+set-timeout tick, 1000.0/60.0

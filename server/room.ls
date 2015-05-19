@@ -73,42 +73,39 @@ export class Room
       unless conn is connection
         conn.send type, data
 
+  tick: !->
+    unless @world? then return
+
+    @world.step new Date!.get-time!
+
+    unless @state is \simulating then return
+
+    ball-poss = []
+
+    for ball in @balls
+      unless ball.state.pos.x is ball.last-pos.x
+         and ball.state.pos.y is ball.last-pos.y
+           ball-poss.push { ball.id, x: ball.state.pos.x, y: ball.state.pos.y }
+      ball.last-pos.x = ball.state.pos.x
+      ball.last-pos.y = ball.state.pos.y
+
+    if ball-poss.length then @broadcast \ball-pos ball-poss
+
+    for ball in @balls then unless ball.sleep! then return
+
+    @turn = (@turn + 1) % 2
+    @state = \playing
+    @broadcast \turn @turn
+
   init-physics: !->
     console.log 'Initialising physics'
 
     self = @
 
-    world <-! physics {
+    self.world = world <-! physics {
       timestep: 6
       max-IPF:  4
     }
-
-    all-balls-sleeping = ->
-      for ball in balls then unless ball.sleep! then return false
-      return true
-
-    tick = !->
-      set-timeout tick, 1000.0/60.0
-
-      world.step new Date!.get-time!
-
-      unless self.state is \simulating then return
-
-      ball-poss = []
-
-      for ball in balls
-        unless ball.state.pos.x is ball.last-pos.x
-           and ball.state.pos.y is ball.last-pos.y
-             ball-poss.push { ball.id, x: ball.state.pos.x, y: ball.state.pos.y }
-        ball.last-pos.x = ball.state.pos.x
-        ball.last-pos.y = ball.state.pos.y
-
-      if ball-poss.length then self.broadcast \ball-pos ball-poss
-
-      if all-balls-sleeping!
-        self.turn = (self.turn + 1) % 2
-        self.state = \playing
-        self.broadcast \turn self.turn
 
     world.add physics.behavior \edge-collision-detection,
       aabb: physics.aabb 25 25 575 275
@@ -173,5 +170,3 @@ export class Room
         sinkee.sleep true
         world.remove-body sinkee
         self.broadcast \ball-sink { sinkee.id, self.turn }
-
-    set-timeout tick, 1000.0/60.0
