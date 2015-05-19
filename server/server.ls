@@ -2,15 +2,16 @@
 
 require! { http, ecstatic, websocket: { server: WebSocketServer }:ws, './room.ls': { Room } }
 
+# Log with timestamp
+log = (...args) !-> console.log.call console, ([new Date!] ++ args).join " "
+
 server = http.create-server ecstatic { root : "#__dirname/..", default-ext : \html }
 
-server.listen 9982 !->
-  console.log new Date! + ' Server started'
+server.listen 9982 !-> log 'Server started'
 
-ws-server = new WebSocketServer {
+ws-server = new WebSocketServer do
   http-server: server
   auto-accept-connections: false
-}
 
 # TODO: Check origin
 origin-allowed = (origin) -> true
@@ -20,7 +21,7 @@ rooms = {}
 handlers =
 
   join: (data, connection) !->
-    unless data.roomid then return
+    return unless data.roomid
     if data.roomid not of rooms then rooms[data.roomid] = new Room data.roomid
     room = rooms[data.roomid]
 
@@ -28,33 +29,32 @@ handlers =
     connection.room = room
     room.join connection
 
-    console.log new Date! + (if data.name? then " Player #{data.name}" else ' Spectator') + " joined #{data.roomid} (P: #{room.players.length}, S: #{room.spectators.length}, T: #{room.connections.length})."
+    log (if data.name? then "Player #{data.name}" else 'Spectator') + " joined #{data.roomid} (P: #{room.players.length}, S: #{room.spectators.length}, T: #{room.connections.length})."
 
   aim: (data, connection) !->
-    unless connection.room? then return
+    return unless connection.room?
     connection.room.aim? data, connection
 
   shoot: (data, connection) !->
-    unless connection.room? and connection.name? then return
+    return unless connection.room? and connection.name?
     connection.room.shoot? data, connection
 
   place: (data, connection) !->
-    unless connection.room? and connection.name? then return
+    return unless connection.room? and connection.name?
     connection.room.place? data, connection
 
   broadcast: (data, connection) !->
-    unless connection.room? then return
+    return unless connection.room?
     connection.room.broadcast-as connection, \broadcast, data
 
 ws-server.on \request (request) !->
   unless origin-allowed request.origin
     request.reject!
-    console.log new Date! + ' Connection from origin ' + request.origin + ' rejected'
-    return
+    log "Connection from origin #{request.origin} rejected"
 
   connection = request.accept \eight-ball request.origin
 
-  console.log new Date! + ' Connection accepted'
+  log 'Connection accepted'
 
   connection.send = (type, data) !-> { type, data } |> JSON.stringify |> connection.send-UTF
 
@@ -63,13 +63,13 @@ ws-server.on \request (request) !->
       try message = JSON.parse message.utf8-data catch then return
       if message.type? then handlers[message.type]? message.data, connection
     #else if message.type is 'binary'
-    #  console.log new Date! + ' Received Binary Message of ' + message.binary-data.length + ' bytes'
+    #  log 'Received Binary Message of ' + message.binary-data.length + ' bytes'
 
   connection.on \close (reason-code, description) !->
     if connection.room?
       connection.room.part connection
       if connection.room.connections.length is 0 then delete rooms[connection.room.id]
-    console.log new Date! + " Client #{connection.remote-address} disconnected"
+    log "Client #{connection.remote-address} disconnected"
 
 tick = !->
   set-timeout tick, 1000.0/60.0
