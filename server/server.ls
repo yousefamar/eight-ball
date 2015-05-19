@@ -2,10 +2,12 @@
 
 require! { http, ecstatic, websocket: { server: WebSocketServer }:ws, './room.ls': { Room } }
 
+# Log with timestamp
+log = (...args) !-> console.log.call console, ([new Date!] ++ args).join " "
+
 server = http.create-server ecstatic { root : "#__dirname/..", default-ext : \html }
 
-server.listen 9982 !->
-  console.log new Date! + ' Server started'
+server.listen 9982 !-> log 'Server started'
 
 ws-server = new WebSocketServer do
   http-server: server
@@ -27,7 +29,7 @@ handlers =
     connection.room = room
     room.join connection
 
-    console.log new Date! + (if data.name? then " Player #{data.name}" else ' Spectator') + " joined #{data.roomid} (P: #{room.players.length}, S: #{room.spectators.length}, T: #{room.connections.length})."
+    log (if data.name? then "Player #{data.name}" else 'Spectator') + " joined #{data.roomid} (P: #{room.players.length}, S: #{room.spectators.length}, T: #{room.connections.length})."
 
   aim: (data, connection) !->
     return unless connection.room?
@@ -52,7 +54,7 @@ ws-server.on \request (request) !->
 
   connection = request.accept \eight-ball request.origin
 
-  console.log new Date! + ' Connection accepted'
+  log 'Connection accepted'
 
   connection.send = (type, data) !-> { type, data } |> JSON.stringify |> connection.send-UTF
 
@@ -61,13 +63,13 @@ ws-server.on \request (request) !->
       try message = JSON.parse message.utf8-data catch then return
       if message.type? then handlers[message.type]? message.data, connection
     #else if message.type is 'binary'
-    #  console.log new Date! + ' Received Binary Message of ' + message.binary-data.length + ' bytes'
+    #  log 'Received Binary Message of ' + message.binary-data.length + ' bytes'
 
   connection.on \close (reason-code, description) !->
     if connection.room?
       connection.room.part connection
       if connection.room.connections.length is 0 then delete rooms[connection.room.id]
-    console.log new Date! + " Client #{connection.remote-address} disconnected"
+    log "Client #{connection.remote-address} disconnected"
 
 tick = !->
   set-timeout tick, 1000.0/60.0
