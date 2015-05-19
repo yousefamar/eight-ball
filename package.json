@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "An eight-ball game embedded in Manyland",
   "scripts": {
+    "prepublish": "make",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "./server/server.ls"
   },
