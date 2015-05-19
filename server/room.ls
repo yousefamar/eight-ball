@@ -7,15 +7,22 @@ export class Room
 
   width-edge = width / 24
   width-felt = width - 2 * width-edge
+  height-felt = height - 2 * width-edge
   line-x = width-edge + width-felt / 5
   balls-x = width - width-edge - width-felt / 4
 
-  radius = 10
+  radius = 10px
   diameter = 2 * radius
   offset = Math.sqrt (diameter * diameter) - (radius * radius)
 
+  @cue-bounds =
+    x0: width-edge + radius
+    y0: width-edge + radius
+    x1: line-x
+    y1: width-edge + height-felt - radius
+
   @init-ball-poss =
-    { x: line-x, y: 150 }
+    { x: line-x,  y: 150 }
     { x: balls-x, y: 150 }
     { x: balls-x + 3 * offset, y: 150 - 1 * radius }
     { x: balls-x + 2 * offset, y: 150 + 2 * radius }
@@ -130,7 +137,7 @@ export class Room
 
     self.aim = (coords, connection) !->
       unless @state is \playing and connection is @players[@turn] then return
-      connection.room.broadcast-as connection, \aim, coords
+      @broadcast-as connection, \aim, coords
 
     self.shoot = (force, connection) !->
       unless @state is \playing and connection is @players[@turn] then return
@@ -138,6 +145,22 @@ export class Room
       cue-ball.sleep false
       cue-ball.apply-force force
       @broadcast-as connection, \shoot
+
+    self.place = (coords, connection) !->
+      unless @state is \playing and connection is @players[@turn] then return
+      coords.x := coords.x |> Math.max @@cue-bounds.x0, _ |> Math.min @@cue-bounds.x1, _
+      coords.y := coords.y |> Math.max @@cue-bounds.y0, _ |> Math.min @@cue-bounds.y1, _
+      world.add cue-ball := balls[0] =
+        physics.body \circle,
+          id: \ball-0
+          class: \ball
+          x: coords.x
+          y: coords.y
+          radius: 10
+          restitution: 1
+          cof: 0
+      cue-ball.last-pos = coords
+      @broadcast \place, coords
 
     world.add holes = for n til 6
       physics.body \circle,

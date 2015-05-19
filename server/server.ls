@@ -38,6 +38,10 @@ handlers =
     unless connection.room? and connection.name? then return
     connection.room.shoot? data, connection
 
+  place: (data, connection) !->
+    unless connection.room? and connection.name? then return
+    connection.room.place? data, connection
+
   broadcast: (data, connection) !->
     unless connection.room? then return
     connection.room.broadcast-as connection, \broadcast, data

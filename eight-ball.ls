@@ -26,10 +26,12 @@ sock-send = !-> console.error 'Cannot send to server'
 
 is-own-turn = false
 is-stick-visible = false
-is-own-stick = false
+is-cue-being-placed = false
 aim-x = 0
 aim-y = 0
 aim-angle = 0
+
+cue-bounds = null
 
 player-names = []
 spectator-count = 0
@@ -83,6 +85,10 @@ handlers =
         .style \left pos.x - 10 + \px
 
   'ball-sink': (data) !->
+    if data.id is \ball-0
+      sounds.pocket.play 1
+      is-cue-being-placed := true
+      return
     d3.select \# + data.id .remove!
     sounds.pocket.play 1
     d3.select '#p' + data.turn + ' .sunk-balls'
@@ -108,16 +114,24 @@ handlers =
       d3.select "\#p#{player-id} .name" .style \color \#EEEEEE
 
   'aim': (coords) !->
-    is-stick-visible := true
-    is-own-stick     := false
     aim-x := coords.x
     aim-y := coords.y
+    if is-cue-being-placed then return
+    is-stick-visible := true
     update-aim-angle!
 
   'shoot': !->
     is-stick-visible := false
     sounds.cue-shot.play 1
 
+  'place': (coords) !->
+    is-cue-being-placed := false
+    d3.select \#ball-0
+      .attr \data-x coords.x
+      .attr \data-y coords.y
+      .style \top  coords.y - 10 + \px
+      .style \left coords.x - 10 + \px
+      .style \opacity 1
 
 connect = (callback) !->
   uid = null
@@ -144,25 +158,29 @@ connect = (callback) !->
   sock-send := (type, data) !-> { type, data } |> JSON.stringify |> sock.send
 
 window.EB.onload = !->
-  width  = 600
-  height = 340
-
   game = d3.select \#game
   game-rect = game.node!.get-bounding-client-rect!
   width = game-rect.width
-  height = game-rect.height
+  height = game-rect.height - 40px
 
-  radius = 10
+  radius = 10px
   diameter = 2 * radius
   offset = Math.sqrt (diameter * diameter) - (radius * radius)
 
   width-edge = width / 24
   width-felt = width - 2 * width-edge
+  height-felt = height - 2 * width-edge
   line-x = width-edge + width-felt / 5
   balls-x = width - width-edge - width-felt / 4
 
+  cue-bounds :=
+    x0: width-edge + radius
+    y0: width-edge + radius
+    x1: line-x
+    y1: width-edge + height-felt - radius
+
   init-ball-poss =
-    { x: line-x, y: 150 }
+    { x: line-x,  y: 150 }
     { x: balls-x, y: 150 }
     { x: balls-x + 3 * offset, y: 150 - 1 * radius }
     { x: balls-x + 2 * offset, y: 150 + 2 * radius }
@@ -233,6 +251,13 @@ init-controls = !->
   render = !->
     request-animation-frame render
 
+    if is-cue-being-placed
+      cue-ball
+        .style \top  aim-y - 10 + \px
+        .style \left aim-x - 10 + \px
+        .style \opacity 0.5
+      return
+
     if is-stick-visible
       cue-x = parse-float cue-ball.attr \data-x
       cue-y = parse-float cue-ball.attr \data-y
@@ -240,14 +265,14 @@ init-controls = !->
         .style \top  cue-y + \px
         .style \left cue-x - 10 + \px
         .style \transform "rotate(#{aim-angle}rad) translate(0px, 20px)"
-        .style \opacity if is-own-stick then 1 else 0.5
+        .style \opacity if is-own-turn then 1 else 0.5
         .style \visibility \visible
       line
         .attr \x1 cue-x
         .attr \y1 cue-y
         .attr \x2 aim-x
         .attr \y2 aim-y
-        .style \opacity if is-own-stick then 1 else 0.5
+        .style \opacity if is-own-turn then 1 else 0.5
         .attr \visibility \visible
     else
       line.attr   \visibility \hidden
@@ -258,15 +283,18 @@ init-controls = !->
   unless \player of get-vars then return
 
   on-down = !->
+    is-mouse-down := true
+    on-move it
     unless is-own-turn then return
-    is-mouse-down    := true
+    if is-cue-being-placed then return
     is-stick-visible := true
-    is-own-stick     := true
-    update-aim-angle!
   on-up   = !->
     unless is-own-turn and is-mouse-down then return
-    is-own-turn := false
     is-mouse-down    := false
+    if is-cue-being-placed
+      sock-send \place { x: aim-x, y: aim-y }
+      return
+    is-own-turn := false
     is-stick-visible := false
     force =
       x: aim-x - parse-float cue-ball.attr \data-x
@@ -280,6 +308,11 @@ init-controls = !->
     unless is-own-turn then return
     aim-x := it.client-x
     aim-y := it.client-y
+    if is-cue-being-placed
+      aim-x := aim-x |> Math.max cue-bounds.x0, _ |> Math.min cue-bounds.x1, _
+      aim-y := aim-y |> Math.max cue-bounds.y0, _ |> Math.min cue-bounds.y1, _
+      sock-send \aim { x: aim-x, y: aim-y }
+      return
     if is-mouse-down
       update-aim-angle!
       sock-send \aim { x: aim-x, y: aim-y }
