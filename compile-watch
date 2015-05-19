@@ -1,2 +1,0 @@
-#!/bin/sh
-watchify --verbose --debug -t liveify -g uglifyify -o eight-ball.min.js eight-ball.ls
